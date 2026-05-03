@@ -9,4 +9,4 @@ export const SHOP_ITEMS: StoreItem[] = [
   { id: 6, name: "Keyboard", price: 74.99, emoji: "⌨️" },
 ];
 
-export const TECHSTORE_BACKEND_URL = "http://localhost:3000";
+export const TECHSTORE_BACKEND_URL = "https://trustpay-integration-example.onrender.com";

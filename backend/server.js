@@ -15,9 +15,10 @@ const log = {
   error: (...args) => console.error("[ERROR]", ...args),
 };
 
-const TRUSTPAY_BACKEND_URL = "http://host.docker.internal:8002";
-const ALLOWED_ORIGINS = "http://localhost:5174,http://localhost:5173,http://localhost:3000"
-.split(",").map(origin => origin.trim()).filter(Boolean);
+const TRUSTPAY_BACKEND_URL = "https://trustpay-backend-1orv.onrender.com";
+const ALLOWED_ORIGINS = [
+  "https://trustpay-integration-example.vercel.app"
+];
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET_TRUSTPAY || null;
 const FINAL_STATUSES = new Set(["CONFIRMED", "REJECTED", "EXPIRED"]);
 const FINALIZED_PAYMENT_TTL_MS = 30 * 60 * 1000;
@@ -25,6 +26,7 @@ const FINALIZED_CLEANUP_INTERVAL_MS = 60 * 1000;
 
 const finalizedPayments = new Map();
 const wsClients = new Map();
+const submittedPayments = new Map(); // track submitted payments to prevent duplicates
 
 // #### Utility functions ####
 const normalizeStatus = (value) => String(value ?? "").toUpperCase();
@@ -70,9 +72,17 @@ const toFrontendEvent = (correlationId, body) => ({
 const app = express();
 app.use(helmet());
 app.use(cors({
-  origin: ALLOWED_ORIGINS,
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      log.warn(`[CORS] Request from disallowed origin: ${origin}`);
+      callback(new Error("CORS policy violation"));
+    }
+  },
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
+  credentials: false,
 }));
 
 // Capture raw body before JSON parsing for webhook signature validation.
@@ -116,19 +126,32 @@ setInterval(() => {
     const ts = Date.parse(payload.receivedAt ?? "");
     if (Number.isNaN(ts) || now - ts > FINALIZED_PAYMENT_TTL_MS)
       finalizedPayments.delete(id);
-  }
-}, FINALIZED_CLEANUP_INTERVAL_MS);
+  }  // Clean up old payment submission attempts (older than 10 seconds)
+  for (const [key, ts] of submittedPayments.entries()) {
+    if (now - ts > 10000)
+      submittedPayments.delete(key);
+  }}, FINALIZED_CLEANUP_INTERVAL_MS);
 
 // #### Submit payment code (TrustPay) ####
 app.post("/api/payments/submit-code", async (req, res) => {
   const { code, amount, storeName } = req.body ?? {};
+  const normalizedCode = typeof code === "string" ? code.replace(/\D/g, "").trim() : "";
 
-  if (typeof code !== "string" || code.trim().length !== 6)
+  if (!/^\d{6}$/.test(normalizedCode))
     return res.status(400).json({ message: "Enter a valid 6-digit code" });
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0)
     return res.status(400).json({ message: "Enter a valid payment amount" });
   if (typeof storeName !== "string" || !storeName.trim())
     return res.status(400).json({ message: "Store name is required" });
+
+  // Check for duplicate payment attempt (same code + amount + store within 5 seconds)
+  const paymentKey = `${normalizedCode}|${amount}|${storeName}`;
+  const lastAttempt = submittedPayments.get(paymentKey);
+  if (lastAttempt && Date.now() - lastAttempt < 5000) {
+    log.warn(`[submit-code] Duplicate payment attempt blocked: ${paymentKey}`);
+    return res.status(429).json({ message: "Payment already submitted. Please wait before retrying." });
+  }
+  submittedPayments.set(paymentKey, Date.now());
 
   const correlationId = createCorrelationId();
   const webhookUrl = `${getPublicBaseUrl(req).replace(/\/+$/, "")}/webhook/${correlationId}`;
@@ -138,7 +161,7 @@ app.post("/api/payments/submit-code", async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        code: code.trim(),
+        code: normalizedCode,
         amount,
         storeName: storeName.trim(),
         webhookUrl,

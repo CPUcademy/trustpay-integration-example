@@ -1,0 +1,17 @@
+services:
+  techstore-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: techstore-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: https://trustpay-integration-example.onrender.com
+    ports:
+      - "5174:5174"
+    networks:
+      - techstore-network
+
+networks:
+  techstore-network:
+    driver: bridge

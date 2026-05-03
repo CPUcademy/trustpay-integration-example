@@ -8,14 +8,12 @@ export type StoreItem = {
 export type PaymentStatus = "PENDING" | "CONFIRMED" | "REJECTED" | "EXPIRED";
 export type FinalPaymentStatus = Exclude<PaymentStatus, "PENDING">;
 
-// TechStore frontend -> TechStore backend (/api/payments/submit-code)
 export type SubmitCodeRequest = {
   code: string;
   amount: number;
   storeName: string;
 };
 
-// TechStore backend -> TechStore frontend response
 export type SubmitCodeResponse = {
   requestId?: number;
   correlationId?: string;
@@ -26,7 +24,6 @@ export type ApiErrorResponse = {
   error?: string;
 };
 
-// TrustPay webhook status forwarded by TechStore backend to frontend via WebSocket
 export type StorePaymentEvent = {
   type: "PAYMENT_FINALIZED";
   source: "webhook";

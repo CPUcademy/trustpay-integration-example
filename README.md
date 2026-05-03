@@ -2,7 +2,7 @@
 
 This example store shows how to integrate with TrustPay payments.
 
-## 1. Store -> TrustPay backend
+## 1. Store backend -> TrustPay backend
 
 Endpoint:
 - `POST /api/payments/submit-code`
@@ -14,21 +14,19 @@ Required request JSON fields:
 - `webhookUrl` (`https://<store-host>/webhook/:correlationId`)
 - `webhookSecret` (provided by TrustPay admin and saved as `WEBHOOK_SECRET_TRUSTPAY` environment variable)
 
-Store backend behavior:
-- Returns `200` with `{ requestId, correlationId }` on success
-- Forwards TrustPay error status/message on failure
-
 ## 2. TrustPay backend -> Store webhook
+
+**Important note:** If your website is running on localhost and is not exposed to a public URL, the webhook will not be delivered successfully because the TrustPay backend operates on a different network and cannot access your local environment.
 
 Endpoint:
 - `POST /webhook/:correlationId` (Store backend)
 
-Expected terminal webhook body:
+Expected webhook body:
 - `status`: `CONFIRMED` | `REJECTED` | `EXPIRED`
 - `amount`
-- `storeName` (required, non-empty for terminal statuses)
+- `storeName`
 
-On valid terminal webhook, TechStore emits WebSocket event:
+When a webhook is successfully received and validated, Store backend emits a WebSocket event to Store frontend:
 - `type: "PAYMENT_FINALIZED"`
 - `source: "webhook"`
 - `correlationId`, `status`, `amount`, `storeName`, `receivedAt`

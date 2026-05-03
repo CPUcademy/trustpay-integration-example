@@ -11,6 +11,7 @@ const TechStore = () => {
   const [status, setStatus] = useState<StoreState>("shopping");
   const [correlationId, setCorrelationId] = useState<string | null>(null);
   const [statusText, setStatusText] = useState<string>("Payment submitted. Waiting for TrustPay confirmation...");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const websocketUrl = useMemo(() => {
     if (!TECHSTORE_BACKEND_URL) return null;
@@ -55,11 +56,13 @@ const TechStore = () => {
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError("");
     const normalizedCode = code.replace(/\D/g, "");
     if (normalizedCode.length < 6) return setError("Enter a 6-digit code");
     if (cart.length === 0) return setError("Cart is empty");
 
+    setIsSubmitting(true);
     try {
       const result = await submitPaymentCode(normalizedCode, total, "Tech Store");
       if (!result.correlationId) throw new Error("Missing correlation id from Tech Store backend");
@@ -68,6 +71,7 @@ const TechStore = () => {
       setStatusText("Payment submitted. Waiting for TrustPay confirmation...");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to submit code");
+      setIsSubmitting(false);
     }
   };
 
@@ -136,7 +140,9 @@ const TechStore = () => {
               <label>TrustPay Code</label>
               <SixDigitPaymentInput code={code} setCode={setCode} />
               {error && <div className="error-box">{error}</div>}
-              <button type="submit" className="pay-btn">Pay {formatCurrency(total)}</button>
+              <button type="submit" className="pay-btn" disabled={isSubmitting}>
+                {isSubmitting ? "Processing..." : `Pay ${formatCurrency(total)}`}
+              </button>
             </form>
           </div>
         </div>
