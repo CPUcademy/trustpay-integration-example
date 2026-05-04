@@ -69,13 +69,14 @@ const TechStore = () => {
       setCorrelationId(result.correlationId);
       setStatus("pending");
       setStatusText("Payment submitted. Waiting for TrustPay confirmation...");
+      setIsSubmitting(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to submit code");
       setIsSubmitting(false);
     }
   };
 
-  const reset = () => { setCart([]); setCode(""); setError(""); setStatus("shopping"); setCorrelationId(null); setStatusText("Payment submitted. Waiting for TrustPay confirmation..."); };
+  const reset = () => { setCart([]); setCode(""); setError(""); setStatus("shopping"); setCorrelationId(null); setStatusText("Payment submitted. Waiting for TrustPay confirmation..."); setIsSubmitting(false); };
 
   if (status === "pending") {
     return (
