@@ -16,6 +16,7 @@ const log = {
 };
 
 const TRUSTPAY_BACKEND_URL = "https://trustpay-backend-1orv.onrender.com";
+const STORE_NAME = "TechStore";
 const ALLOWED_ORIGINS = [
   "https://trustpay-integration-example.vercel.app"
 ];
@@ -134,18 +135,15 @@ setInterval(() => {
 
 // #### Submit payment code (TrustPay) ####
 app.post("/api/payments/submit-code", async (req, res) => {
-  const { code, amount, storeName } = req.body ?? {};
+  const { code, amount } = req.body ?? {};
   const normalizedCode = typeof code === "string" ? code.replace(/\D/g, "").trim() : "";
 
   if (!/^\d{6}$/.test(normalizedCode))
     return res.status(400).json({ message: "Enter a valid 6-digit code" });
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0)
     return res.status(400).json({ message: "Enter a valid payment amount" });
-  if (typeof storeName !== "string" || !storeName.trim())
-    return res.status(400).json({ message: "Store name is required" });
-
   // Check for duplicate payment attempt (same code + amount + store within 5 seconds)
-  const paymentKey = `${normalizedCode}|${amount}|${storeName}`;
+  const paymentKey = `${normalizedCode}|${amount}|${STORE_NAME}`;
   const lastAttempt = submittedPayments.get(paymentKey);
   if (lastAttempt && Date.now() - lastAttempt < 5000) {
     log.warn(`[submit-code] Duplicate payment attempt blocked: ${paymentKey}`);
@@ -163,7 +161,7 @@ app.post("/api/payments/submit-code", async (req, res) => {
       body: JSON.stringify({
         code: normalizedCode,
         amount,
-        storeName: storeName.trim(),
+        storeName: STORE_NAME,
         webhookUrl,
         webhookSecret: WEBHOOK_SECRET || undefined,
       }),
