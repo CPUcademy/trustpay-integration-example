@@ -10,3 +10,4 @@ export const SHOP_ITEMS: StoreItem[] = [
 ];
 
 export const TECHSTORE_BACKEND_URL = "https://trustpay-integration-example.onrender.com";
+export const STORE_NAME = "TechStore";

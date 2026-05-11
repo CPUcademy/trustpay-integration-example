@@ -64,7 +64,7 @@ const TechStore = () => {
 
     setIsSubmitting(true);
     try {
-      const result = await submitPaymentCode(normalizedCode, total, "Tech Store");
+      const result = await submitPaymentCode(normalizedCode, total);
       if (!result.correlationId) throw new Error("Missing correlation id from Tech Store backend");
       setCorrelationId(result.correlationId);
       setStatus("pending");
