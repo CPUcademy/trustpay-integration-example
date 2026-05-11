@@ -1,6 +1,6 @@
 # TrustPay Integration
 
-This example store shows how to integrate with TrustPay payments. The store owner has to create a TrustPay account using the exact username he will later provide as `storeName` in payment requests.
+This example store shows how to integrate with TrustPay payments. The store owner has to create a TrustPay account using the exact username he will later provide as `storeName` in payment requests. The money that users pay at the store will be transferred directly to that account.
 
 ## 1. Store backend -> TrustPay backend
 
