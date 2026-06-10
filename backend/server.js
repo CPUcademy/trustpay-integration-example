@@ -74,15 +74,16 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      log.warn(`[CORS] Request from disallowed origin: ${origin}`);
-      callback(new Error("CORS policy violation"));
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
     }
+
+    log.warn(`[CORS] Request from disallowed origin: ${origin}`);
+    return callback(null, false);
   },
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: false,
 }));
 
@@ -182,6 +183,10 @@ app.post("/api/payments/submit-code", async (req, res) => {
     log.error(`[submit-code] fetch failed — ${cause} — target: ${TRUSTPAY_BACKEND_URL}`);
     return res.status(502).json({ message: "Tech Store backend could not reach TrustPay" });
   }
+});
+
+app.get("/health", (req, res) => {
+  return res.status(200).json({ status: "OK" });
 });
 
 // #### Webhook receiver ####
