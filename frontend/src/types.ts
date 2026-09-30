@@ -28,6 +28,7 @@ export type StorePaymentEvent = {
   type: "PAYMENT_FINALIZED";
   source: "webhook";
   correlationId: string;
+  requestId: number;
   status: FinalPaymentStatus;
   amount: number;
   storeName: string;
